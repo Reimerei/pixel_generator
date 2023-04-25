@@ -4,14 +4,15 @@ defmodule PixelGenerator.LedConnector do
   use GenServer
   require Logger
 
+  alias PixelGenerator.Protobuf.ResponsePacket
   alias PixelGenerator.Protobuf
+  alias PixelGenerator.Protobuf.RemoteLog
 
-  defstruct [:udp]
+  defstruct [:udp, :file]
 
-  @udp_host "blinkenleds.fritz.box" |> to_charlist()
-  # @udp_host "192.168.0.165"
-  # @udp_host {192, 168, 0, 165}
-  @udp_port 1337
+  @udp_remote_host "blinkenleds.fritz.box" |> to_charlist()
+  @udp_remote_port 1337
+  @udp_local_port 4422
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, :ok, name: __MODULE__)
@@ -28,13 +29,26 @@ defmodule PixelGenerator.LedConnector do
   end
 
   def init(:ok) do
-    Logger.info("Sending UPD packets to #{inspect(@udp_host)}:#{@udp_port}")
+    Logger.info(
+      "Sending UPD packets to #{inspect(@udp_remote_host)}:#{@udp_remote_port}. Listening on #{@udp_local_port}"
+    )
 
-    {:ok, udp} = :gen_udp.open(0, [:binary, active: false])
+    {:ok, file} = File.open("remote.log", [:append])
 
-    :ok = :gen_udp.connect(udp, @udp_host, @udp_port)
+    {:ok, udp} = :gen_udp.open(@udp_local_port, [:binary, active: true])
+    :ok = :gen_udp.connect(udp, @udp_remote_host, @udp_remote_port)
 
-    {:ok, %__MODULE__{udp: udp}}
+    {:ok, %__MODULE__{udp: udp, file: file}}
+  end
+
+  def handle_info({:udp, _socket, ip, _port, protobuf}, state = %__MODULE__{}) do
+    case Protobuf.decode_response(protobuf) do
+      %ResponsePacket{content: {:remote_log, %RemoteLog{message: message}}} ->
+        IO.binwrite(state.file, "#{message}\n")
+        Logger.info("Remote log #{print_ip(ip)}: #{inspect(message)}")
+    end
+
+    {:noreply, state}
   end
 
   def handle_cast({:send, binary}, %__MODULE__{} = state) do
@@ -43,4 +57,6 @@ defmodule PixelGenerator.LedConnector do
     Logger.debug("UDP: #{inspect(res)}")
     {:noreply, state}
   end
+
+  def print_ip({a, b, c, d}), do: "#{a}.#{b}.#{c}.#{d}"
 end

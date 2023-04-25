@@ -50,6 +50,8 @@ defmodule PixelGenerator.Protobuf.Config do
     type: PixelGenerator.Protobuf.EasingMode,
     json_name: "brighnessEasing",
     enum: true
+
+  field :test_frame, 12, type: :bool, json_name: "testFrame"
 end
 
 defmodule PixelGenerator.Protobuf.Frame do
@@ -58,6 +60,28 @@ defmodule PixelGenerator.Protobuf.Frame do
 
   field :data, 1, type: :bytes, deprecated: false
   field :maxval, 2, type: :uint32
+end
+
+defmodule PixelGenerator.Protobuf.ResponsePacket do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.11.0", syntax: :proto3
+
+  oneof :content, 0
+
+  field :client_info, 1,
+    type: PixelGenerator.Protobuf.ClientInfo,
+    json_name: "clientInfo",
+    oneof: 0
+
+  field :remote_log, 2, type: PixelGenerator.Protobuf.RemoteLog, json_name: "remoteLog", oneof: 0
+end
+
+defmodule PixelGenerator.Protobuf.ClientInfo do
+  @moduledoc false
+  use Protobuf, protoc_gen_elixir_version: "0.11.0", syntax: :proto3
+
+  field :hostname, 1, type: :string, deprecated: false
+  field :version, 2, type: :string, deprecated: false
 end
 
 defmodule PixelGenerator.Protobuf.RemoteLog do

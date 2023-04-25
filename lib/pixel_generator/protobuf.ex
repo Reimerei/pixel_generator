@@ -1,5 +1,5 @@
 defmodule PixelGenerator.Protobuf do
-  alias PixelGenerator.Protobuf.{Frame, Packet, Config}
+  alias PixelGenerator.Protobuf.{Frame, Packet, Config, ResponsePacket, RemoteLog}
 
   @default_config %{
     on_r: 150,
@@ -38,5 +38,9 @@ defmodule PixelGenerator.Protobuf do
   def encode(%Config{} = config) do
     Packet.new!(content: {:config, config})
     |> Packet.encode()
+  end
+
+  def decode_response(protobuf) when is_binary(protobuf) do
+    ResponsePacket.decode(protobuf)
   end
 end

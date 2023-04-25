@@ -24,3 +24,5 @@ pixel_generator-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+remote.log

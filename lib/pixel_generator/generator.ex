@@ -1,6 +1,7 @@
 # Genserver that generates pixels
 defmodule PixelGenerator.Generator do
   use GenServer
+  alias PixelGenerator.LedConnector
   alias PixelGenerator.Protobuf
   alias PixelGenerator.Protobuf.Config
 
@@ -17,7 +18,8 @@ defmodule PixelGenerator.Generator do
   def init(:ok) do
     # :timer.send_interval(500, :next_led)
     # :timer.send_interval(100, :next_color)
-    :timer.send_interval(1000, :next_brightness)
+    :timer.send_interval(1200, :next_brightness)
+    # :timer.send_interval(500, :tick)
 
     all_on()
 
@@ -31,7 +33,7 @@ defmodule PixelGenerator.Generator do
         c -> c + 1
       end
 
-    data = 1..@led_count |> Enum.map(fn _ -> 0 end) |> List.update_at(i, fn _ -> @maxval end)
+    data = 0..@led_count |> Enum.map(fn _ -> 0 end) |> List.update_at(i, fn _ -> @maxval end)
 
     Protobuf.new_frame(@maxval, data)
     |> PixelGenerator.LedConnector.send_protobuf()
@@ -42,7 +44,8 @@ defmodule PixelGenerator.Generator do
   def handle_info(:next_brightness, %__MODULE__{} = state) do
     b =
       case state.brightness do
-        c when c >= @maxval -> 0
+        # c when c >= @maxval -> 0
+        c when c >= 3 -> 0
         c -> c + 1
       end
 
@@ -61,28 +64,21 @@ defmodule PixelGenerator.Generator do
         r -> r + 10
       end
 
-    config =
-      Protobuf.update_config(config, %{monochrome_r: new_r, monochrome_w: 0, monochrome_g: 0})
+    config = Protobuf.update_config(config, %{on_r: new_r, on_w: 0, on_g: 0})
 
     PixelGenerator.LedConnector.send_protobuf(config)
 
     {:noreply, %__MODULE__{state | config: config}}
   end
 
-  # def handle_info(:tick, %__MODULE__{brightness: b} = state) when b <= @maxval do
-  #   data = 1..20 |> Enum.map(fn _ -> b end)
+  def handle_info(:tick, state) do
+    # all_on()
 
-  #   PixelGenerator.Protobuf.encode_frame(@maxval, data)
-  #   |> PixelGenerator.LedConnector.send()
+    Protobuf.new_config(%{test_frame: false, on_g: 255, on_b: 255})
+    |> LedConnector.send_protobuf()
 
-  #   new_b =
-  #     case b do
-  #       @maxval -> 0
-  #       _ -> b + 1
-  #     end
-
-  #   {:noreply, %__MODULE__{state | brightness: new_b}}
-  # end
+    {:noreply, state}
+  end
 
   def all_on() do
     data = 1..@led_count |> Enum.map(fn _ -> @maxval end)
