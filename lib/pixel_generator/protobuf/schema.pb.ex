@@ -81,7 +81,8 @@ defmodule PixelGenerator.Protobuf.ClientInfo do
   use Protobuf, protoc_gen_elixir_version: "0.11.0", syntax: :proto3
 
   field :hostname, 1, type: :string, deprecated: false
-  field :version, 2, type: :string, deprecated: false
+  field :build_time, 2, type: :string, json_name: "buildTime", deprecated: false
+  field :panel_index, 3, type: :int32, json_name: "panelIndex"
 end
 
 defmodule PixelGenerator.Protobuf.RemoteLog do

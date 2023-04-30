@@ -4,13 +4,13 @@ defmodule PixelGenerator.LedConnector do
   use GenServer
   require Logger
 
-  alias PixelGenerator.Protobuf.ResponsePacket
   alias PixelGenerator.Protobuf
-  alias PixelGenerator.Protobuf.RemoteLog
+  alias PixelGenerator.Protobuf.{RemoteLog, ClientInfo, ResponsePacket}
 
   defstruct [:udp, :file]
 
-  @udp_remote_host "blinkenleds.fritz.box" |> to_charlist()
+  # @udp_remote_host "blinkenleds.fritz.box" |> to_charlist()
+  @udp_remote_host {192, 168, 0, 255}
   @udp_remote_port 1337
   @udp_local_port 4422
 
@@ -35,7 +35,7 @@ defmodule PixelGenerator.LedConnector do
 
     {:ok, file} = File.open("remote.log", [:append])
 
-    {:ok, udp} = :gen_udp.open(@udp_local_port, [:binary, active: true])
+    {:ok, udp} = :gen_udp.open(@udp_local_port, [:binary, active: true, broadcast: true])
     :ok = :gen_udp.connect(udp, @udp_remote_host, @udp_remote_port)
 
     {:ok, %__MODULE__{udp: udp, file: file}}
@@ -46,6 +46,12 @@ defmodule PixelGenerator.LedConnector do
       %ResponsePacket{content: {:remote_log, %RemoteLog{message: message}}} ->
         IO.binwrite(state.file, "#{message}\n")
         Logger.info("Remote log #{print_ip(ip)}: #{inspect(message)}")
+
+      %ResponsePacket{content: {:client_info, %ClientInfo{} = client_info}} ->
+        Logger.info("Client info #{print_ip(ip)}: #{inspect(client_info)}")
+
+      other ->
+        Logger.warn("Receive unknown response #{inspect(other)}")
     end
 
     {:noreply, state}

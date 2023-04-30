@@ -81,7 +81,8 @@ defmodule PixelGenerator.Generator do
   end
 
   def all_on() do
-    data = 1..@led_count |> Enum.map(fn _ -> @maxval end)
+    data = 1..@led_count |> Enum.map(fn _ -> 2 end)
+    # data = 1..@led_count |> Enum.map(fn _ -> @maxval end)
 
     Protobuf.new_frame(@maxval, data)
     |> PixelGenerator.LedConnector.send_protobuf()
